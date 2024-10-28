@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Slider</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    .slider {
+      width: 80%;
+      max-width: 600px;
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .slides {
+      display: flex;
+      transition: transform 0.5s ease-in-out;
+    }
+    .slides img {
+      width: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="slider">
+    <div class="slides">
+      <img src="LINK_GAMBAR_1" alt="Image 1">
+      <img src="LINK_GAMBAR_2" alt="Image 2">
+      <img src="LINK_GAMBAR_3" alt="Image 3">
+      <!-- Tambahkan gambar sesuai kebutuhan -->
+    </div>
+  </div>
+  <script>
+    let index = 0;
+    const slides = document.querySelector('.slides');
+    const images = slides.querySelectorAll('img');
+    const totalImages = images.length;
+
+    setInterval(() => {
+      index = (index + 1) % totalImages;
+      slides.style.transform = `translateX(${-index * 100}%)`;
+    }, 3000);
+  </script>
+</body>
+</html>
