@@ -23,9 +23,10 @@
     .slides {
       display: flex;
       transition: transform 0.5s ease-in-out;
+      width: calc(100% * 3); /* Sesuaikan dengan jumlah gambar */
     }
     .slides img {
-      width: 100%;
+      width: calc(100% / 3); /* Sesuaikan dengan jumlah gambar */
       border: none;
     }
   </style>
@@ -33,11 +34,9 @@
 <body>
   <div class="slider">
     <div class="slides">
-      <img src="https://lh3.googleusercontent.com/d/1NeArJWLT-HARNw2s3pxZd9tZ4STuj6RP
-" alt="NH Sumpah Pemuda">
+      <img src="https://lh3.googleusercontent.com/d/1NeArJWLT-HARNw2s3pxZd9tZ4STuj6RP" alt="NH Sumpah Pemuda">
       <img src="https://lh3.googleusercontent.com/d/1eCvGWI__6I3YLUmxOkdSjyIzzxiaT730" alt="Fathiyah Sumpah Pemuda">
       <img src="https://lh3.googleusercontent.com/d/1VfS9iDge7jrcuF38-FUfH-3o3Icqm3UO" alt="mts nu itb Sumpah Pemuda 2024">
-     
       <!-- Tambahkan gambar sesuai kebutuhan -->
     </div>
   </div>
@@ -49,7 +48,7 @@
 
     setInterval(() => {
       index = (index + 1) % totalImages;
-      slides.style.transform = `translateX(${-index * 100}%)`;
+      slides.style.transform = `translateX(${-index * (100 / totalImages)}%)`;
     }, 3000);
   </script>
 </body>
