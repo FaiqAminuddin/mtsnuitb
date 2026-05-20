@@ -1,55 +1,258 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Galeri MTs NU ITB</title>
+  <title>Arsip MTs Irsyaduth Thullab</title>
+
+  <!-- Library SheetJS -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
   <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: green;
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f6f9;
+      margin:0;
+      padding:20px;
     }
-    .slider {
-      width: 80%;
-      max-width: 600px;
-      overflow: hidden;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+    h1{
+      text-align:center;
+      color:#1f3c88;
+      margin-bottom:30px;
     }
-    .slides {
-      display: flex;
-      transition: transform 0.5s ease-in-out;
-      width: calc(100% * 3); /* Sesuaikan dengan jumlah gambar */
+
+    .card{
+      background:white;
+      border-radius:12px;
+      padding:20px;
+      margin-bottom:25px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1);
     }
-    .slides img {
-      width: calc(100% / 3); /* Sesuaikan dengan jumlah gambar */
-      border: none;
+
+    h2{
+      margin-top:0;
+      color:#0d47a1;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:15px;
+    }
+
+    th, td{
+      border:1px solid #ccc;
+      padding:10px;
+      text-align:left;
+    }
+
+    th{
+      background:#1976d2;
+      color:white;
+    }
+
+    tr:nth-child(even){
+      background:#f9f9f9;
+    }
+
+    a{
+      color:#1565c0;
+      text-decoration:none;
+    }
+
+    a:hover{
+      text-decoration:underline;
+    }
+
+    .loading{
+      color:#888;
+      font-style:italic;
+    }
+
+    @media(max-width:768px){
+      table{
+        font-size:14px;
+      }
+
+      th, td{
+        padding:8px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="slider">
-    <div class="slides">
-      <img src="https://lh3.googleusercontent.com/d/1NeArJWLT-HARNw2s3pxZd9tZ4STuj6RP" alt="NH Sumpah Pemuda">
-      <img src="https://lh3.googleusercontent.com/d/1eCvGWI__6I3YLUmxOkdSjyIzzxiaT730" alt="Fathiyah Sumpah Pemuda">
-      <img src="https://lh3.googleusercontent.com/d/1VfS9iDge7jrcuF38-FUfH-3o3Icqm3UO" alt="mts nu itb Sumpah Pemuda 2024">
-      <!-- Tambahkan gambar sesuai kebutuhan -->
-    </div>
-  </div>
-  <script>
-    let index = 0;
-    const slides = document.querySelector('.slides');
-    const images = slides.querySelectorAll('img');
-    const totalImages = images.length;
 
-    setInterval(() => {
-      index = (index + 1) % totalImages;
-      slides.style.transform = `translateX(${-index * (100 / totalImages)}%)`;
-    }, 3000);
-  </script>
+<h1>Arsip MTs Irsyaduth Thullab</h1>
+
+<!-- Surat Masuk -->
+<div class="card">
+  <h2>1. Surat Masuk</h2>
+
+  <div id="suratMasuk" class="loading">
+    Memuat data...
+  </div>
+</div>
+
+<!-- Surat Keluar -->
+<div class="card">
+  <h2>2. Surat Keluar</h2>
+
+  <div id="suratKeluar" class="loading">
+    Memuat data...
+  </div>
+</div>
+
+<!-- Dokumentasi -->
+<div class="card">
+  <h2>3. Dokumentasi</h2>
+
+  <div id="dokumentasi" class="loading">
+    Memuat data...
+  </div>
+</div>
+
+<script>
+
+async function loadCSV(file, elementId){
+
+  try{
+
+    const response = await fetch(file);
+
+    if(!response.ok){
+      throw new Error("File tidak ditemukan");
+    }
+
+    const text = await response.text();
+
+    const rows = text.trim().split("\n");
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Uraian</th>
+            <th>URL</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    for(let i = 1; i < rows.length; i++){
+
+      const cols = rows[i].split(",");
+
+      const tanggal = cols[0] || "";
+      const uraian  = cols[1] || "";
+      const url     = cols[2] || "";
+
+      html += `
+        <tr>
+          <td>${tanggal}</td>
+          <td>${uraian}</td>
+          <td>
+            <a href="${url}" target="_blank">
+              Lihat File
+            </a>
+          </td>
+        </tr>
+      `;
+    }
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    document.getElementById(elementId).innerHTML = html;
+
+  }catch(error){
+
+    document.getElementById(elementId).innerHTML =
+      "Data tidak ditemukan.";
+  }
+}
+
+
+async function loadODS(file, elementId){
+
+  try{
+
+    const response = await fetch(file);
+
+    if(!response.ok){
+      throw new Error("File tidak ditemukan");
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+
+    const workbook = XLSX.read(arrayBuffer, {
+      type: "array"
+    });
+
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const data = XLSX.utils.sheet_to_json(firstSheet, {
+      header: 1
+    });
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Uraian</th>
+            <th>URL</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    for(let i = 1; i < data.length; i++){
+
+      const row = data[i];
+
+      const tanggal = row[0] || "";
+      const uraian  = row[1] || "";
+      const url     = row[2] || "";
+
+      html += `
+        <tr>
+          <td>${tanggal}</td>
+          <td>${uraian}</td>
+          <td>
+            <a href="${url}" target="_blank">
+              Lihat File
+            </a>
+          </td>
+        </tr>
+      `;
+    }
+
+    html += `
+        </tbody>
+      </table>
+    `;
+
+    document.getElementById(elementId).innerHTML = html;
+
+  }catch(error){
+
+    document.getElementById(elementId).innerHTML =
+      "Data tidak ditemukan.";
+  }
+}
+
+
+
+loadODS("surat_masuk.ods", "suratMasuk");
+loadODS("surat_keluar.ods", "suratKeluar");
+loadODS("dokumentasi.ods", "dokumentasi");
+
+
+</script>
+
 </body>
 </html>
