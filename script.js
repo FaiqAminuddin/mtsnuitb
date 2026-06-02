@@ -2,7 +2,7 @@
 const CONFIG = {
     targetUTC: "2026-06-02T10:00:00Z",        // 2 Juni 2026 pukul 17.00 WIB
     targetDateReadable: "Selasa, 2 Juni 2026 pukul 17.00 WIB",
-    sklGoogleDriveLink: "https://drive.google.com/file/d/1S9j3L8kF7gH2tJ5rQ6wE4rT9yU1i_oP5/view?usp=sharing"
+    sklGoogleDriveLink: "https://drive.google.com/drive/folders/1sOGEG9RT-ywn9WMalQnO92b0dDP3k0kn?usp=sharing"
 };
 
 let usersData = []; // akan diisi dari CSV
