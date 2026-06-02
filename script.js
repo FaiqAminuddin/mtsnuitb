@@ -1,10 +1,15 @@
-// Global variables
+// Konfigurasi (bisa diubah di sini)
+const CONFIG = {
+    targetUTC: "2026-06-02T10:00:00Z",        // 2 Juni 2026 pukul 17.00 WIB
+    targetDateReadable: "Selasa, 2 Juni 2026 pukul 17.00 WIB",
+    sklGoogleDriveLink: "https://drive.google.com/file/d/1S9j3L8kF7gH2tJ5rQ6wE4rT9yU1i_oP5/view?usp=sharing"
+};
+
+let usersData = []; // akan diisi dari CSV
 let isLoggedIn = false;
 let timerInterval = null;
-let configData = null;
-let usersData = [];
 
-// DOM elements
+// DOM Elements
 const loginPanel = document.getElementById('loginPanel');
 const graduatePanel = document.getElementById('graduatePanel');
 const loginBtn = document.getElementById('loginBtn');
@@ -13,31 +18,59 @@ const passwordInput = document.getElementById('password');
 const logoutBtn = document.getElementById('logoutBtn');
 const targetDateText = document.getElementById('targetDateText');
 
-// Load config & users
-async function loadData() {
+// Set target date text
+if (targetDateText) targetDateText.innerText = `📅 ${CONFIG.targetDateReadable}`;
+
+// --- Fungsi baca CSV dari file data/users.csv ---
+async function loadUsersFromCSV() {
     try {
-        const configRes = await fetch('data/config.json');
-        configData = await configRes.json();
+        const response = await fetch('data/users.csv');
+        const csvText = await response.text();
         
-        const usersRes = await fetch('data/users.json');
-        usersData = await usersRes.json();
+        // Parsing CSV sederhana (asumsi kolom: username,password,name)
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
         
-        // Set target date text
-        if (targetDateText) {
-            targetDateText.innerText = `📅 ${configData.targetDateReadable}`;
+        // Pastikan urutan kolom bebas, cari index username, password, name
+        const idxUsername = headers.indexOf('username');
+        const idxPassword = headers.indexOf('password');
+        const idxName = headers.indexOf('name');
+        
+        if (idxUsername === -1 || idxPassword === -1 || idxName === -1) {
+            throw new Error('CSV harus memiliki kolom: username, password, name');
         }
-        startTimer();
+        
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            if (values.length >= 3) {
+                usersData.push({
+                    username: values[idxUsername],
+                    password: values[idxPassword],
+                    name: values[idxName]
+                });
+            }
+        }
+        
+        console.log(`${usersData.length} user berhasil dimuat dari CSV`);
+        if (usersData.length === 0) {
+            alert('Peringatan: File users.csv kosong atau format salah. Tambahkan data user.');
+        }
+        // Setelah load, cek session
         checkSession();
     } catch (err) {
-        console.error('Gagal memuat data:', err);
-        alert('Gagal memuat data. Pastikan file config.json dan users.json ada di folder data/');
+        console.error('Gagal memuat users.csv:', err);
+        alert(`Gagal memuat data user. Pastikan file data/users.csv ada dengan format:\nusername,password,name\ncontoh: alfatih,mts123,Alfatih`);
+        // Fallback: data dummy agar demo tetap berjalan
+        usersData = [
+            { username: "demo", password: "demo123", name: "User Demo" }
+        ];
+        checkSession();
     }
 }
 
 // Timer
 function updateTimerDisplay() {
-    if (!configData) return;
-    const targetTime = new Date(configData.targetUTC).getTime();
+    const targetTime = new Date(CONFIG.targetUTC).getTime();
     const now = new Date();
     const diff = targetTime - now;
 
@@ -86,18 +119,17 @@ function startTimer() {
 }
 
 function isAnnouncementOpen() {
-    if (!configData) return false;
     const now = new Date();
-    return now.getTime() >= new Date(configData.targetUTC).getTime();
+    return now.getTime() >= new Date(CONFIG.targetUTC).getTime();
 }
 
 function updateSKLButton() {
     const sklArea = document.getElementById('sklButtonArea');
     const driveText = document.getElementById('driveLinkText');
-    if (!sklArea || !configData) return;
+    if (!sklArea) return;
     
     const isOpen = isAnnouncementOpen();
-    const sklLink = configData.sklGoogleDriveLink;
+    const sklLink = CONFIG.sklGoogleDriveLink;
     
     if (isOpen) {
         sklArea.innerHTML = `
@@ -110,7 +142,7 @@ function updateSKLButton() {
     } else {
         sklArea.innerHTML = `
             <div class="btn-skl disabled">
-                <i class="fas fa-hourglass-half"></i> SKL Tersedia Setelah ${configData.targetDateReadable}
+                <i class="fas fa-hourglass-half"></i> SKL Tersedia Setelah ${CONFIG.targetDateReadable}
             </div>
             <p style="font-size:12px; margin-top:12px;"><i class="fas fa-info-circle"></i> Pengumuman resmi dibuka pada waktu tersebut.</p>
         `;
@@ -159,7 +191,7 @@ function attemptLogin() {
     if (validUser) {
         showGraduateDashboard(username);
     } else {
-        alert("❌ Username atau password salah. Cek file users.json untuk data yang tersedia.");
+        alert("❌ Username atau password salah. Periksa kembali atau hubungi panitia.");
     }
 }
 
@@ -187,5 +219,6 @@ logoutBtn.addEventListener('click', logoutHandler);
     if (e.key === 'Enter') attemptLogin();
 }));
 
-// Start
-loadData();
+// Mulai: load CSV dulu, lalu timer
+startTimer();
+loadUsersFromCSV();
