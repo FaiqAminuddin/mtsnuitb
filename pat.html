@@ -1,3 +1,5 @@
+Berikut adalah kode HTML yang telah diperbaiki. Sekarang daftar mata pelajaran hanya menampilkan 22 mapel unik (tanpa akhiran "(Remidi)"), dan nilai remidi diambil dari kolom yang sesuai.
+```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -29,7 +31,6 @@
             overflow: hidden;
             transition: all 0.2s;
         }
-        /* login panel */
         .login-panel {
             padding: 40px 30px;
             background: linear-gradient(135deg, #1e3c2c, #2a5a3a);
@@ -84,7 +85,6 @@
             margin-top: 12px;
             font-size: 0.85rem;
         }
-        /* dashboard */
         .dashboard {
             display: none;
         }
@@ -220,13 +220,13 @@
     <!-- Panel Login -->
     <div id="loginSection" class="login-panel">
         <div class="login-card">
-            <h2>📘 SISKA RAPOR CBT</h2>
+            <h2>📘 Daftar Nilai CBT PAT 2025/2026</h2>
             <p style="color:#3d5a3d;">MTs Irsyaduth Thullab Tedunan</p>
             <input type="text" id="loginUsername" placeholder="Username / email" autocomplete="off">
             <input type="password" id="loginPassword" placeholder="Kata Sandi">
             <button id="btnLogin">🔑 MASUK</button>
             <div id="loginError" class="error-msg" style="display: none;"></div>
-            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">Demo: gunakan akun siswa (email) atau guru: guru / guru123</div>
+            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">Demo: guru (guru/guru123) atau siswa pakai email + sandi: siswa123</div>
         </div>
     </div>
 
@@ -259,7 +259,7 @@
                 <span style="font-size:0.7rem; color:#4b6e3b; margin-left:auto;">⬇ Export nilai utama + remidi + keterangan</span>
             </div>
 
-            <!-- Tampilan nilai siswa (pribadi atau pilih siswa jika guru) -->
+            <!-- Tampilan nilai siswa -->
             <div id="nilaiContainer">
                 <div style="margin-bottom: 20px;">
                     <h3 id="subtitleNilai">📖 Daftar Nilai Mata Pelajaran</h3>
@@ -280,13 +280,35 @@
 <script>
     // ---------- GLOBAL DATA ----------
     let allStudents = [];        // array objek siswa { id, nama, kelas, email, nilaiMap (Map: key mapel -> { utama, remidi }) }
-    let masterMapelList = [];    // daftar unik nama mata pelajaran (string)
+    let masterMapelList = [];    // daftar unik nama mata pelajaran (tanpa kata remidi)
     let usersDB = [];             // { username, password, status, nama, emailMatch }
-    let currentUser = null;       // { username, status, nama, emailMatch (jika siswa) }
+    let currentUser = null;
 
-    // status login: guru / kelas7 / kelas8
+    // ================== PERBAIKAN PARSING NILAI ==================
+    // Fungsi untuk mengekstrak nama mapel bersih dari key kolom
+    // Format: "Kuis:NAMA MAPEL (Riil)" atau "Kuis:NAMA MAPEL (Remidi) (Riil)" atau "Kuis:NAMA MAPEL (REMIDI) (Riil)"
+    // Yang dikembalikan: { mapelBersih, isRemidi }
+    function parseMapelKey(key) {
+        if (!key.startsWith("Kuis:")) return null;
+        // Hilangkan "Kuis:" diawal
+        let sisa = key.substring(5);
+        // Deteksi apakah mengandung (Riil) di akhir
+        let riilMatch = sisa.match(/(.*?)\s*\(Riil\)$/i);
+        if (!riilMatch) return null;
+        let sebelumRiil = riilMatch[1].trim();
+        // Cek apakah mengandung (Remidi) atau (REMIDI)
+        let remidiMatch = sebelumRiil.match(/^(.*?)\s*\((Remidi|REMIDI)\)$/i);
+        if (remidiMatch) {
+            // Ini kolom remidi
+            let mapelBersih = remidiMatch[1].trim();
+            return { mapelBersih: mapelBersih, isRemidi: true };
+        } else {
+            // Kolom utama (nilai asli)
+            return { mapelBersih: sebelumRiil, isRemidi: false };
+        }
+    }
 
-    // Helper: parse CSV teks jadi array objek
+    // Parsing CSV menjadi array objek
     function parseCSVtoObjects(csvText) {
         const lines = csvText.trim().split(/\r?\n/);
         if(lines.length < 2) return [];
@@ -316,46 +338,38 @@
         return result;
     }
 
-    // Ekstrak data nilai siswa dari raw objek CSV (kelas 7 atau 8)
+    // Ekstrak data nilai siswa dari raw objek CSV
     function extractStudentFromRaw(rawObj, defaultKelas) {
-        // Nama depan + nama akhir
         let namaDepan = rawObj["Nama Depan"] || "";
         let namaAkhir = rawObj["Nama akhir"] || "";
         let namaLengkap = (namaDepan + " " + namaAkhir).trim();
         let email = rawObj["Alamat surel"] || "";
         let nomorId = rawObj["Nomor ID"] || "";
-        // identifikasi kelas dari parameter atau dari data (G19/G18)
         let kelas = defaultKelas; // 7 atau 8
 
-        // buat peta nilai: mapel -> { utama, remidi }
+        // Peta nilai: mapel -> { utama, remidi }
         let nilaiMap = new Map();
-        // loop semua properti objek
+
+        // Loop semua properti
         for(let key in rawObj) {
-            if(key.startsWith("Kuis:")) {
-                // format: Kuis:NAMA MAPEL (Riil) atau Kuis:NAMA MAPEL (Remidi) (Riil)
-                let match = key.match(/^Kuis:(.+?) \((Riil|Remidi)\)/);
-                if(match) {
-                    let mapelRaw = match[1].trim();
-                    let tipe = match[2]; // Riil atau Remidi
-                    // bersihkan kemungkinan " (Remidi) (Riil)" menjadi nama mapel bersih
-                    let mapelClean = mapelRaw.replace(/ \(Remidi\)/g, '').trim();
-                    let nilaiStr = rawObj[key];
-                    let nilai = (nilaiStr === '-' || nilaiStr === '' || nilaiStr === undefined) ? null : parseFloat(nilaiStr);
-                    if(isNaN(nilai)) nilai = null;
-                    
-                    if(!nilaiMap.has(mapelClean)) {
-                        nilaiMap.set(mapelClean, { utama: null, remidi: null });
-                    }
-                    let entry = nilaiMap.get(mapelClean);
-                    if(tipe === 'Riil') {
-                        entry.utama = nilai;
-                    } else if(tipe === 'Remidi') {
-                        entry.remidi = nilai;
-                    }
-                }
+            let parsed = parseMapelKey(key);
+            if (!parsed) continue;
+            let { mapelBersih, isRemidi } = parsed;
+            let nilaiStr = rawObj[key];
+            let nilai = (nilaiStr === '-' || nilaiStr === '' || nilaiStr === undefined) ? null : parseFloat(nilaiStr);
+            if(isNaN(nilai)) nilai = null;
+
+            if (!nilaiMap.has(mapelBersih)) {
+                nilaiMap.set(mapelBersih, { utama: null, remidi: null });
+            }
+            let entry = nilaiMap.get(mapelBersih);
+            if (!isRemidi) {
+                entry.utama = nilai;
+            } else {
+                entry.remidi = nilai;
             }
         }
-        // nilai akhir (Riil) tidak perlu ditampilkan sebagai mapel, tetap simpan untuk referensi
+
         return {
             id: nomorId || email || namaLengkap,
             nama: namaLengkap,
@@ -384,24 +398,25 @@
                 }
             } catch(e) {
                 console.warn(`Error loading ${file.path}:`, e);
-                // fallback: jika tidak ada file, simulasi dari data yang diembed? Tapi kita display error
                 alert(`Data nilai tidak dapat dimuat: ${file.path}. Pastikan file tersedia.`);
             }
         }
-        // Gabungkan semua siswa
         allStudents = rawStudents;
-        // Kumpulkan semua mapel unik dari semua siswa
+        // Kumpulkan semua mapel unik dari semua siswa (tanpa duplikasi)
         let mapelSet = new Set();
         for(let s of allStudents) {
             for(let mapel of s.nilaiMap.keys()) {
                 mapelSet.add(mapel);
             }
         }
-        masterMapelList = Array.from(mapelSet).sort();
-        console.log("Loaded students:", allStudents.length, "mapel:", masterMapelList.length);
+        // Urutkan mapel agar konsisten
+        masterMapelList = Array.from(mapelSet).sort((a,b) => a.localeCompare(b, 'id'));
+        console.log("Loaded students:", allStudents.length, "mapel unik:", masterMapelList.length);
+        // Optional: tampilkan daftar mapel di console
+        console.log("Daftar Mapel:", masterMapelList);
     }
 
-    // Load database user (user.csv) -> format: nama,username,sandi,status,email
+    // Load database user (user.csv) atau generate otomatis
     async function loadUserDB() {
         try {
             const resp = await fetch("user.csv");
@@ -423,7 +438,6 @@
             }
         } catch(e) {
             console.warn("user.csv tidak ada, generate user dari data siswa + guru dummy");
-            // generate otomatis berdasarkan data siswa dan tambah akun guru
             for(let student of allStudents) {
                 let username = student.email;
                 if(!username) username = student.nama.replace(/\s/g,'').toLowerCase();
@@ -431,12 +445,11 @@
                 usersDB.push({
                     nama: student.nama,
                     username: username,
-                    password: "siswa123",   // default sandi
+                    password: "siswa123",
                     status: status,
                     email: student.email
                 });
             }
-            // tambahkan akun guru
             usersDB.push({
                 nama: "Guru Pengajar",
                 username: "guru",
@@ -447,7 +460,7 @@
         }
     }
 
-    // Cari siswa berdasarkan email atau nama (untuk siswa)
+    // Cari siswa berdasarkan email
     function getStudentByEmail(email) {
         return allStudents.find(s => s.email === email);
     }
@@ -456,21 +469,20 @@
     function renderNilaiTable(student) {
         if(!student) {
             document.getElementById("tableHeader").innerHTML = "";
-            document.getElementById("tableBody").innerHTML = "<tr><td colspan='3'>Siswa tidak ditemukan</td></tr>";
+            document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></tr>";
             return;
         }
-        // header mapel, nilai utama, remidi, keterangan
         let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
         let tbodyHtml = "";
         let nomor = 1;
         for(let mapel of masterMapelList) {
             let nilai = student.nilaiMap.get(mapel) || { utama: null, remidi: null };
-            let utama = (nilai.utama !== null && nilai.utama !== undefined && !isNaN(nilai.utama)) ? nilai.utama : "-";
-            let remidi = (nilai.remidi !== null && nilai.remidi !== undefined && !isNaN(nilai.remidi)) ? nilai.remidi : "-";
-            let needRemidi = false;
+            let utama = (nilai.utama !== null && !isNaN(nilai.utama)) ? nilai.utama : "-";
+            let remidi = (nilai.remidi !== null && !isNaN(nilai.remidi)) ? nilai.remidi : "-";
             let utamaAngka = (nilai.utama !== null && !isNaN(nilai.utama)) ? nilai.utama : -1;
             let remidiAngka = (nilai.remidi !== null && !isNaN(nilai.remidi)) ? nilai.remidi : -1;
-            if(utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60)) {
+            let needRemidi = false;
+            if (utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60)) {
                 needRemidi = true;
             }
             let keterangan = needRemidi ? "⚠️ masih perlu remidi" : "✅ tuntas";
@@ -481,7 +493,7 @@
                             <td>${utama === "-" ? "—" : utama}</td>
                             <td>${remidi === "-" ? "—" : remidi}</td>
                             <td class="keterangan">${keterangan}</td>
-                         </tr>`;
+                          </tr>`;
         }
         document.getElementById("tableHeader").innerHTML = theadHtml;
         document.getElementById("tableBody").innerHTML = tbodyHtml;
@@ -498,7 +510,7 @@
             filtered = allStudents.filter(s => s.kelas == kelasFilter);
         }
         if(currentUser && currentUser.status !== "guru") {
-            container.innerHTML = ""; // siswa tidak perlu selector
+            container.innerHTML = "";
             return;
         }
         // guru: dropdown pilih siswa
@@ -517,18 +529,15 @@
             if(student) renderNilaiTable(student);
             else renderNilaiTable(null);
         });
-        // default pilih siswa pertama
         if(filtered.length) {
-            let firstStudent = filtered[0];
-            renderNilaiTable(firstStudent);
+            renderNilaiTable(filtered[0]);
         } else {
             renderNilaiTable(null);
         }
     }
 
-    // Export XLS untuk guru berdasarkan mapel dan kelas
+    // Export XLS untuk guru
     function exportToXLS(mapel, kelasFilter) {
-        // filter siswa berdasarkan kelas
         let targetStudents = allStudents;
         if(kelasFilter !== "all") {
             targetStudents = allStudents.filter(s => s.kelas == kelasFilter);
@@ -537,7 +546,6 @@
             alert("Tidak ada siswa pada kelas tersebut.");
             return;
         }
-        // kumpulkan data export
         let exportData = [];
         exportData.push(["Nama Siswa", "Kelas", `Nilai Utama (${mapel})`, `Nilai Remidi (${mapel})`, "Keterangan"]);
         for(let s of targetStudents) {
@@ -601,38 +609,33 @@
         return true;
     }
 
-    // Tampilkan dashboard berdasarkan currentUser
+    // Tampilkan dashboard
     async function showDashboard() {
         if(!currentUser) return;
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("dashboardSection").style.display = "block";
         document.getElementById("userGreeting").innerHTML = `👋 Selamat datang, ${currentUser.nama} (${currentUser.status === "guru" ? "Guru" : (currentUser.status === "kelas7" ? "Siswa Kelas 7" : "Siswa Kelas 8")})`;
         
-        // jika guru
         if(currentUser.status === "guru") {
             await populateStudentSelectorForGuru();
             initGuruExportToolbar();
         } 
-        else { // siswa kelas7/kelas8
-            // cari student berdasarkan email
+        else { // siswa
             let student = allStudents.find(s => s.email === currentUser.emailMatch);
             if(!student) {
-                // fallback : coba berdasarkan nama? pakai email tidak ketemu mungkin beda
                 student = allStudents.find(s => s.nama.toLowerCase() === currentUser.nama.toLowerCase());
             }
             if(student) {
                 renderNilaiTable(student);
-                document.getElementById("studentSelectorArea").innerHTML = ""; // hide selector
+                document.getElementById("studentSelectorArea").innerHTML = "";
             } else {
                 document.getElementById("tableHeader").innerHTML = "";
                 document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Data nilai tidak ditemukan untuk akun ini.</td></tr>";
             }
-            // guru toolbar hide
             document.getElementById("guruToolbar").style.display = "none";
         }
     }
 
-    // Logout
     function logout() {
         localStorage.removeItem("currentUser");
         currentUser = null;
@@ -643,17 +646,14 @@
         document.getElementById("loginError").style.display = "none";
     }
 
-    // Inisialisasi utama
     async function initApp() {
-        await loadAllData();     // load nilai siswa kelas 7 & 8
-        await loadUserDB();      // load / generate user database
+        await loadAllData();
+        await loadUserDB();
         
-        // Cek apakah ada session tersimpan
         const saved = localStorage.getItem("currentUser");
         if(saved) {
             try {
                 currentUser = JSON.parse(saved);
-                // validasi ulang, pastikan usersDB masih ada
                 const stillValid = usersDB.some(u => u.username === currentUser.username);
                 if(stillValid) {
                     await showDashboard();
@@ -663,11 +663,9 @@
                 }
             } catch(e) {}
         }
-        // Tampilkan form login
         document.getElementById("loginSection").style.display = "block";
         document.getElementById("dashboardSection").style.display = "none";
         
-        // Event login
         document.getElementById("btnLogin").onclick = async () => {
             const user = document.getElementById("loginUsername").value.trim();
             const pass = document.getElementById("loginPassword").value.trim();
@@ -679,11 +677,11 @@
         document.getElementById("loginPassword").addEventListener("keypress", (e) => {
             if(e.key === "Enter") document.getElementById("btnLogin").click();
         });
-        document.getElementById("logoutBtn")?.addEventListener("click", logout);
+        document.getElementById("logoutBtn").addEventListener("click", logout);
     }
     
-    // jalankan
     initApp();
 </script>
 </body>
 </html>
+```
