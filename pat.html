@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>E-Rapor CBT | MTs Irsyaduth Thullab Tedunan</title>
+    <!-- SheetJS untuk export XLS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Open Sans', sans-serif;
+        }
+        body {
+            background: #f0f7f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px rgba(0, 32, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        /* login panel */
+        .login-panel {
+            padding: 40px 30px;
+            background: linear-gradient(135deg, #1e3c2c, #2a5a3a);
+            color: white;
+            text-align: center;
+        }
+        .login-card {
+            background: white;
+            color: #1e2a1e;
+            border-radius: 28px;
+            padding: 32px 28px;
+            max-width: 420px;
+            margin: 0 auto;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .login-card h2 {
+            margin-top: 0;
+            color: #2b5e2b;
+            font-weight: 600;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 12px 0;
+            border: 1px solid #cbd5c0;
+            border-radius: 60px;
+            font-size: 1rem;
+            background: #fefef7;
+        }
+        .login-card button {
+            background: #2b5e2b;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: 0.2s;
+        }
+        .login-card button:hover {
+            background: #1f4a1f;
+            transform: scale(0.98);
+        }
+        .error-msg {
+            color: #c62828;
+            background: #ffe8e8;
+            padding: 8px;
+            border-radius: 40px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        /* dashboard */
+        .dashboard {
+            display: none;
+        }
+        .header-dashboard {
+            background: #1e3c2c;
+            padding: 20px 28px;
+            color: white;
+        }
+        .header-dashboard h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.5rem;
+        }
+        .header-dashboard p {
+            margin: 0;
+            opacity: 0.85;
+            font-style: italic;
+        }
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #e9f3e6;
+            padding: 10px 28px;
+            border-bottom: 1px solid #cfe3cf;
+        }
+        .user-greeting {
+            font-weight: bold;
+            color: #1e4620;
+        }
+        .logout-btn {
+            background: #8b5a2b;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .logout-btn:hover {
+            background: #6f451e;
+        }
+        .content-area {
+            padding: 24px 28px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 28px;
+            align-items: flex-end;
+            background: #f8faf4;
+            padding: 16px 20px;
+            border-radius: 28px;
+        }
+        .toolbar-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .toolbar-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2b4b2b;
+        }
+        select, .toolbar button {
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid #bdd4b0;
+            background: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .toolbar button {
+            background: #2a6b2a;
+            color: white;
+            border: none;
+            font-weight: bold;
+        }
+        .toolbar button:hover {
+            background: #1f551f;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 20px;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            border: 1px solid #dde6d5;
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        th {
+            background: #d9e8d3;
+            color: #1a3a1a;
+            font-weight: 700;
+        }
+        tr:nth-child(even) {
+            background-color: #fafdf7;
+        }
+        .nilai-rendah {
+            background-color: #fff0e0;
+            font-weight: 500;
+        }
+        .keterangan {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #e0ecda;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 16px;
+            color: #4a6741;
+            border-top: 1px solid #deecda;
+        }
+        @media (max-width: 700px) {
+            th, td { padding: 6px 4px; font-size: 0.7rem; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="appContainer">
+    <!-- Panel Login -->
+    <div id="loginSection" class="login-panel">
+        <div class="login-card">
+            <h2>📘 SISKA RAPOR CBT</h2>
+            <p style="color:#3d5a3d;">MTs Irsyaduth Thullab Tedunan</p>
+            <input type="text" id="loginUsername" placeholder="Username / email" autocomplete="off">
+            <input type="password" id="loginPassword" placeholder="Kata Sandi">
+            <button id="btnLogin">🔑 MASUK</button>
+            <div id="loginError" class="error-msg" style="display: none;"></div>
+            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">Demo: gunakan akun siswa (email) atau guru: guru / guru123</div>
+        </div>
+    </div>
+
+    <!-- Dashboard (setelah login) -->
+    <div id="dashboardSection" class="dashboard">
+        <div class="header-dashboard">
+            <h1>📋 DAFTAR NILAI CBT</h1>
+            <p>Penilaian Akhir Tahun Pelajaran 2025/2026<br>MTs Irsyaduth Thullab Tedunan</p>
+        </div>
+        <div class="user-info">
+            <span class="user-greeting" id="userGreeting"></span>
+            <button id="logoutBtn" class="logout-btn">🚪 Keluar</button>
+        </div>
+        <div class="content-area">
+            <!-- Khusus guru: toolbar unduh per pelajaran -->
+            <div id="guruToolbar" style="display: none;" class="toolbar">
+                <div class="toolbar-group">
+                    <label>📚 Pilih Mata Pelajaran</label>
+                    <select id="exportMapelSelect"></select>
+                </div>
+                <div class="toolbar-group">
+                    <label>🏫 Kelas</label>
+                    <select id="exportKelasSelect">
+                        <option value="all">Semua Kelas (7 & 8)</option>
+                        <option value="7">Kelas 7</option>
+                        <option value="8">Kelas 8</option>
+                    </select>
+                </div>
+                <button id="btnExportXLS">📎 Unduh Nilai (XLS)</button>
+                <span style="font-size:0.7rem; color:#4b6e3b; margin-left:auto;">⬇ Export nilai utama + remidi + keterangan</span>
+            </div>
+
+            <!-- Tampilan nilai siswa (pribadi atau pilih siswa jika guru) -->
+            <div id="nilaiContainer">
+                <div style="margin-bottom: 20px;">
+                    <h3 id="subtitleNilai">📖 Daftar Nilai Mata Pelajaran</h3>
+                    <div id="studentSelectorArea" style="margin-bottom: 12px;"></div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="nilaiTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <footer>© Sistem Informasi Raport Digital | Data Real Time CBT</footer>
+    </div>
+</div>
+
+<script>
+    // ---------- GLOBAL DATA ----------
+    let allStudents = [];        // array objek siswa { id, nama, kelas, email, nilaiMap (Map: key mapel -> { utama, remidi }) }
+    let masterMapelList = [];    // daftar unik nama mata pelajaran (string)
+    let usersDB = [];             // { username, password, status, nama, emailMatch }
+    let currentUser = null;       // { username, status, nama, emailMatch (jika siswa) }
+
+    // status login: guru / kelas7 / kelas8
+
+    // Helper: parse CSV teks jadi array objek
+    function parseCSVtoObjects(csvText) {
+        const lines = csvText.trim().split(/\r?\n/);
+        if(lines.length < 2) return [];
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const result = [];
+        for(let i=1; i<lines.length; i++) {
+            if(!lines[i].trim()) continue;
+            let row = [];
+            let inQuote = false;
+            let current = '';
+            for(let ch of lines[i]) {
+                if(ch === '"') {
+                    inQuote = !inQuote;
+                } else if(ch === ',' && !inQuote) {
+                    row.push(current.trim());
+                    current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            row.push(current.trim());
+            if(row.length < headers.length) continue;
+            let obj = {};
+            headers.forEach((h, idx) => { obj[h] = row[idx] || ''; });
+            result.push(obj);
+        }
+        return result;
+    }
+
+    // Ekstrak data nilai siswa dari raw objek CSV (kelas 7 atau 8)
+    function extractStudentFromRaw(rawObj, defaultKelas) {
+        // Nama depan + nama akhir
+        let namaDepan = rawObj["Nama Depan"] || "";
+        let namaAkhir = rawObj["Nama akhir"] || "";
+        let namaLengkap = (namaDepan + " " + namaAkhir).trim();
+        let email = rawObj["Alamat surel"] || "";
+        let nomorId = rawObj["Nomor ID"] || "";
+        // identifikasi kelas dari parameter atau dari data (G19/G18)
+        let kelas = defaultKelas; // 7 atau 8
+
+        // buat peta nilai: mapel -> { utama, remidi }
+        let nilaiMap = new Map();
+        // loop semua properti objek
+        for(let key in rawObj) {
+            if(key.startsWith("Kuis:")) {
+                // format: Kuis:NAMA MAPEL (Riil) atau Kuis:NAMA MAPEL (Remidi) (Riil)
+                let match = key.match(/^Kuis:(.+?) \((Riil|Remidi)\)/);
+                if(match) {
+                    let mapelRaw = match[1].trim();
+                    let tipe = match[2]; // Riil atau Remidi
+                    // bersihkan kemungkinan " (Remidi) (Riil)" menjadi nama mapel bersih
+                    let mapelClean = mapelRaw.replace(/ \(Remidi\)/g, '').trim();
+                    let nilaiStr = rawObj[key];
+                    let nilai = (nilaiStr === '-' || nilaiStr === '' || nilaiStr === undefined) ? null : parseFloat(nilaiStr);
+                    if(isNaN(nilai)) nilai = null;
+                    
+                    if(!nilaiMap.has(mapelClean)) {
+                        nilaiMap.set(mapelClean, { utama: null, remidi: null });
+                    }
+                    let entry = nilaiMap.get(mapelClean);
+                    if(tipe === 'Riil') {
+                        entry.utama = nilai;
+                    } else if(tipe === 'Remidi') {
+                        entry.remidi = nilai;
+                    }
+                }
+            }
+        }
+        // nilai akhir (Riil) tidak perlu ditampilkan sebagai mapel, tetap simpan untuk referensi
+        return {
+            id: nomorId || email || namaLengkap,
+            nama: namaLengkap,
+            kelas: kelas,
+            email: email,
+            nilaiMap: nilaiMap
+        };
+    }
+
+    // Load data dari kedua file CSV
+    async function loadAllData() {
+        const files = [
+            { path: "Pat2607 Nilai-20260607_0353-comma_separated.csv", kelas: 7 },
+            { path: "Pat2608 Nilai-20260607_0359-comma_separated.csv", kelas: 8 }
+        ];
+        let rawStudents = [];
+        for(let file of files) {
+            try {
+                const response = await fetch(file.path);
+                if(!response.ok) throw new Error(`Gagal load ${file.path}`);
+                const text = await response.text();
+                const dataObjects = parseCSVtoObjects(text);
+                for(let obj of dataObjects) {
+                    let student = extractStudentFromRaw(obj, file.kelas);
+                    if(student.nama && student.nama !== " ") rawStudents.push(student);
+                }
+            } catch(e) {
+                console.warn(`Error loading ${file.path}:`, e);
+                // fallback: jika tidak ada file, simulasi dari data yang diembed? Tapi kita display error
+                alert(`Data nilai tidak dapat dimuat: ${file.path}. Pastikan file tersedia.`);
+            }
+        }
+        // Gabungkan semua siswa
+        allStudents = rawStudents;
+        // Kumpulkan semua mapel unik dari semua siswa
+        let mapelSet = new Set();
+        for(let s of allStudents) {
+            for(let mapel of s.nilaiMap.keys()) {
+                mapelSet.add(mapel);
+            }
+        }
+        masterMapelList = Array.from(mapelSet).sort();
+        console.log("Loaded students:", allStudents.length, "mapel:", masterMapelList.length);
+    }
+
+    // Load database user (user.csv) -> format: nama,username,sandi,status,email
+    async function loadUserDB() {
+        try {
+            const resp = await fetch("user.csv");
+            if(!resp.ok) throw new Error("user.csv tidak ditemukan, membuat default dari data siswa");
+            const text = await resp.text();
+            const rows = text.trim().split(/\r?\n/);
+            const headers = rows[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+            for(let i=1;i<rows.length;i++) {
+                let vals = rows[i].split(',').map(v => v.replace(/^"|"$/g, '').trim());
+                if(vals.length<5) continue;
+                let userObj = {
+                    nama: vals[0],
+                    username: vals[1],
+                    password: vals[2],
+                    status: vals[3],
+                    email: vals[4]
+                };
+                usersDB.push(userObj);
+            }
+        } catch(e) {
+            console.warn("user.csv tidak ada, generate user dari data siswa + guru dummy");
+            // generate otomatis berdasarkan data siswa dan tambah akun guru
+            for(let student of allStudents) {
+                let username = student.email;
+                if(!username) username = student.nama.replace(/\s/g,'').toLowerCase();
+                let status = (student.kelas === 7) ? "kelas7" : "kelas8";
+                usersDB.push({
+                    nama: student.nama,
+                    username: username,
+                    password: "siswa123",   // default sandi
+                    status: status,
+                    email: student.email
+                });
+            }
+            // tambahkan akun guru
+            usersDB.push({
+                nama: "Guru Pengajar",
+                username: "guru",
+                password: "guru123",
+                status: "guru",
+                email: "-"
+            });
+        }
+    }
+
+    // Cari siswa berdasarkan email atau nama (untuk siswa)
+    function getStudentByEmail(email) {
+        return allStudents.find(s => s.email === email);
+    }
+
+    // Render tabel nilai untuk siswa tertentu
+    function renderNilaiTable(student) {
+        if(!student) {
+            document.getElementById("tableHeader").innerHTML = "";
+            document.getElementById("tableBody").innerHTML = "<tr><td colspan='3'>Siswa tidak ditemukan</td></tr>";
+            return;
+        }
+        // header mapel, nilai utama, remidi, keterangan
+        let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
+        let tbodyHtml = "";
+        let nomor = 1;
+        for(let mapel of masterMapelList) {
+            let nilai = student.nilaiMap.get(mapel) || { utama: null, remidi: null };
+            let utama = (nilai.utama !== null && nilai.utama !== undefined && !isNaN(nilai.utama)) ? nilai.utama : "-";
+            let remidi = (nilai.remidi !== null && nilai.remidi !== undefined && !isNaN(nilai.remidi)) ? nilai.remidi : "-";
+            let needRemidi = false;
+            let utamaAngka = (nilai.utama !== null && !isNaN(nilai.utama)) ? nilai.utama : -1;
+            let remidiAngka = (nilai.remidi !== null && !isNaN(nilai.remidi)) ? nilai.remidi : -1;
+            if(utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60)) {
+                needRemidi = true;
+            }
+            let keterangan = needRemidi ? "⚠️ masih perlu remidi" : "✅ tuntas";
+            let rowClass = needRemidi ? "nilai-rendah" : "";
+            tbodyHtml += `<tr class="${rowClass}">
+                            <td>${nomor++}</td>
+                            <td style="text-align:left; font-weight:500;">${mapel}</td>
+                            <td>${utama === "-" ? "—" : utama}</td>
+                            <td>${remidi === "-" ? "—" : remidi}</td>
+                            <td class="keterangan">${keterangan}</td>
+                         </tr>`;
+        }
+        document.getElementById("tableHeader").innerHTML = theadHtml;
+        document.getElementById("tableBody").innerHTML = tbodyHtml;
+        document.getElementById("subtitleNilai").innerHTML = `📖 Daftar Nilai - ${student.nama} (Kelas ${student.kelas})`;
+    }
+
+    // Untuk guru: dropdown pilih siswa
+    function populateStudentSelectorForGuru() {
+        let container = document.getElementById("studentSelectorArea");
+        if(!container) return;
+        let kelasFilter = currentUser?.status === "guru" ? "all" : (currentUser?.status === "kelas7" ? "7" : (currentUser?.status === "kelas8" ? "8" : null));
+        let filtered = allStudents;
+        if(kelasFilter && kelasFilter !== "all") {
+            filtered = allStudents.filter(s => s.kelas == kelasFilter);
+        }
+        if(currentUser && currentUser.status !== "guru") {
+            container.innerHTML = ""; // siswa tidak perlu selector
+            return;
+        }
+        // guru: dropdown pilih siswa
+        let html = `<div style="display: flex; gap: 12px; align-items: center; flex-wrap:wrap;">
+                        <label><strong>👥 Pilih Siswa : </strong></label>
+                        <select id="siswaSelect" style="padding:6px 12px; border-radius:40px;">`;
+        for(let s of filtered) {
+            html += `<option value="${s.email}">${s.nama} (Kls ${s.kelas})</option>`;
+        }
+        html += `</select><button id="refreshNilaiBtn" style="background:#558b2f; padding:6px 14px; border-radius:40px; border:none; color:white;">Tampilkan Nilai</button>
+                </div>`;
+        container.innerHTML = html;
+        document.getElementById("refreshNilaiBtn")?.addEventListener("click", () => {
+            let email = document.getElementById("siswaSelect").value;
+            let student = allStudents.find(s => s.email === email);
+            if(student) renderNilaiTable(student);
+            else renderNilaiTable(null);
+        });
+        // default pilih siswa pertama
+        if(filtered.length) {
+            let firstStudent = filtered[0];
+            renderNilaiTable(firstStudent);
+        } else {
+            renderNilaiTable(null);
+        }
+    }
+
+    // Export XLS untuk guru berdasarkan mapel dan kelas
+    function exportToXLS(mapel, kelasFilter) {
+        // filter siswa berdasarkan kelas
+        let targetStudents = allStudents;
+        if(kelasFilter !== "all") {
+            targetStudents = allStudents.filter(s => s.kelas == kelasFilter);
+        }
+        if(targetStudents.length === 0) {
+            alert("Tidak ada siswa pada kelas tersebut.");
+            return;
+        }
+        // kumpulkan data export
+        let exportData = [];
+        exportData.push(["Nama Siswa", "Kelas", `Nilai Utama (${mapel})`, `Nilai Remidi (${mapel})`, "Keterangan"]);
+        for(let s of targetStudents) {
+            let nilaiMapel = s.nilaiMap.get(mapel) || { utama: null, remidi: null };
+            let utama = (nilaiMapel.utama !== null && !isNaN(nilaiMapel.utama)) ? nilaiMapel.utama : "-";
+            let remidi = (nilaiMapel.remidi !== null && !isNaN(nilaiMapel.remidi)) ? nilaiMapel.remidi : "-";
+            let utamaAngka = (nilaiMapel.utama !== null && !isNaN(nilaiMapel.utama)) ? nilaiMapel.utama : -1;
+            let remidiAngka = (nilaiMapel.remidi !== null && !isNaN(nilaiMapel.remidi)) ? nilaiMapel.remidi : -1;
+            let keterangan = (utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60)) ? "Masih perlu remidi" : "Tuntas";
+            exportData.push([s.nama, `Kelas ${s.kelas}`, utama, remidi, keterangan]);
+        }
+        const ws = XLSX.utils.aoa_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `Nilai_${mapel}_kelas${kelasFilter}`);
+        XLSX.writeFile(wb, `Nilai_${mapel}_${kelasFilter}_PAT2026.xlsx`);
+    }
+
+    // Inisialisasi dashboard guru: isi dropdown mapel untuk export
+    function initGuruExportToolbar() {
+        const toolbarDiv = document.getElementById("guruToolbar");
+        if(!toolbarDiv) return;
+        if(currentUser.status === "guru") {
+            toolbarDiv.style.display = "flex";
+            const mapelSelect = document.getElementById("exportMapelSelect");
+            mapelSelect.innerHTML = "";
+            for(let mapel of masterMapelList) {
+                let opt = document.createElement("option");
+                opt.value = mapel;
+                opt.textContent = mapel;
+                mapelSelect.appendChild(opt);
+            }
+            const exportBtn = document.getElementById("btnExportXLS");
+            const kelasSelect = document.getElementById("exportKelasSelect");
+            exportBtn.onclick = () => {
+                let mapel = mapelSelect.value;
+                let kelas = kelasSelect.value;
+                if(!mapel) { alert("Pilih mata pelajaran terlebih dahulu."); return; }
+                exportToXLS(mapel, kelas);
+            };
+        } else {
+            toolbarDiv.style.display = "none";
+        }
+    }
+
+    // Handler login
+    async function handleLogin(username, password) {
+        if(usersDB.length === 0) await loadUserDB();
+        const user = usersDB.find(u => u.username === username && u.password === password);
+        if(!user) {
+            document.getElementById("loginError").innerText = "Username / sandi salah!";
+            document.getElementById("loginError").style.display = "block";
+            return false;
+        }
+        currentUser = {
+            username: user.username,
+            status: user.status,
+            nama: user.nama,
+            emailMatch: user.email
+        };
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        return true;
+    }
+
+    // Tampilkan dashboard berdasarkan currentUser
+    async function showDashboard() {
+        if(!currentUser) return;
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("dashboardSection").style.display = "block";
+        document.getElementById("userGreeting").innerHTML = `👋 Selamat datang, ${currentUser.nama} (${currentUser.status === "guru" ? "Guru" : (currentUser.status === "kelas7" ? "Siswa Kelas 7" : "Siswa Kelas 8")})`;
+        
+        // jika guru
+        if(currentUser.status === "guru") {
+            await populateStudentSelectorForGuru();
+            initGuruExportToolbar();
+        } 
+        else { // siswa kelas7/kelas8
+            // cari student berdasarkan email
+            let student = allStudents.find(s => s.email === currentUser.emailMatch);
+            if(!student) {
+                // fallback : coba berdasarkan nama? pakai email tidak ketemu mungkin beda
+                student = allStudents.find(s => s.nama.toLowerCase() === currentUser.nama.toLowerCase());
+            }
+            if(student) {
+                renderNilaiTable(student);
+                document.getElementById("studentSelectorArea").innerHTML = ""; // hide selector
+            } else {
+                document.getElementById("tableHeader").innerHTML = "";
+                document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Data nilai tidak ditemukan untuk akun ini.</td></tr>";
+            }
+            // guru toolbar hide
+            document.getElementById("guruToolbar").style.display = "none";
+        }
+    }
+
+    // Logout
+    function logout() {
+        localStorage.removeItem("currentUser");
+        currentUser = null;
+        document.getElementById("loginSection").style.display = "block";
+        document.getElementById("dashboardSection").style.display = "none";
+        document.getElementById("loginUsername").value = "";
+        document.getElementById("loginPassword").value = "";
+        document.getElementById("loginError").style.display = "none";
+    }
+
+    // Inisialisasi utama
+    async function initApp() {
+        await loadAllData();     // load nilai siswa kelas 7 & 8
+        await loadUserDB();      // load / generate user database
+        
+        // Cek apakah ada session tersimpan
+        const saved = localStorage.getItem("currentUser");
+        if(saved) {
+            try {
+                currentUser = JSON.parse(saved);
+                // validasi ulang, pastikan usersDB masih ada
+                const stillValid = usersDB.some(u => u.username === currentUser.username);
+                if(stillValid) {
+                    await showDashboard();
+                    return;
+                } else {
+                    localStorage.removeItem("currentUser");
+                }
+            } catch(e) {}
+        }
+        // Tampilkan form login
+        document.getElementById("loginSection").style.display = "block";
+        document.getElementById("dashboardSection").style.display = "none";
+        
+        // Event login
+        document.getElementById("btnLogin").onclick = async () => {
+            const user = document.getElementById("loginUsername").value.trim();
+            const pass = document.getElementById("loginPassword").value.trim();
+            const success = await handleLogin(user, pass);
+            if(success) {
+                await showDashboard();
+            }
+        };
+        document.getElementById("loginPassword").addEventListener("keypress", (e) => {
+            if(e.key === "Enter") document.getElementById("btnLogin").click();
+        });
+        document.getElementById("logoutBtn")?.addEventListener("click", logout);
+    }
+    
+    // jalankan
+    initApp();
+</script>
+</body>
+</html>
