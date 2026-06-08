@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Daftar Nilai Penilaian Akhir Tahun (PAT) | MTs Irsyaduth Thullab Tedunan</title>
+    <title>E-Rapor CBT | MTs Irsyaduth Thullab Tedunan</title>
     <!-- SheetJS untuk export XLS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
@@ -14,7 +14,7 @@
         .login-card { background: white; color: #1e2a1e; border-radius: 28px; padding: 32px 28px; max-width: 420px; margin: 0 auto; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
         .login-card h2 { margin-top: 0; color: #2b5e2b; font-weight: 600; }
         .login-card input { width: 100%; padding: 12px 16px; margin: 12px 0; border: 1px solid #cbd5c0; border-radius: 60px; font-size: 1rem; background: #fefef7; }
-        .login-card button { background: #2b5e2b; color: white; border: none; width: 100%; padding: 12px; border-radius: 60px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 16px; }
+        .login-card button { background: #2b5e2b; color: white; border: none; width: 100%; padding: 12px; border-radius: 60px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 16px; transition: 0.2s; }
         .login-card button:hover { background: #1f4a1f; transform: scale(0.98); }
         .error-msg { color: #c62828; background: #ffe8e8; padding: 8px; border-radius: 40px; margin-top: 12px; font-size: 0.85rem; }
         .dashboard { display: none; }
@@ -23,14 +23,14 @@
         .header-dashboard p { margin: 0; opacity: 0.85; font-style: italic; }
         .user-info { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; background: #e9f3e6; padding: 10px 28px; border-bottom: 1px solid #cfe3cf; }
         .user-greeting { font-weight: bold; color: #1e4620; }
-        .logout-btn { background: #8b5a2b; border: none; padding: 6px 18px; border-radius: 30px; color: white; cursor: pointer; font-weight: 500; }
+        .logout-btn { background: #8b5a2b; border: none; padding: 6px 18px; border-radius: 30px; color: white; cursor: pointer; font-weight: 500; transition: 0.2s; }
         .logout-btn:hover { background: #6f451e; }
         .content-area { padding: 24px 28px; }
         .toolbar { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 28px; align-items: flex-end; background: #f8faf4; padding: 16px 20px; border-radius: 28px; }
         .toolbar-group { display: flex; flex-direction: column; gap: 6px; }
         .toolbar-group label { font-size: 0.8rem; font-weight: 600; color: #2b4b2b; }
         select, .toolbar button { padding: 8px 16px; border-radius: 40px; border: 1px solid #bdd4b0; background: white; font-size: 0.9rem; cursor: pointer; }
-        .toolbar button { background: #2a6b2a; color: white; border: none; font-weight: bold; }
+        .toolbar button { background: #2a6b2a; color: white; border: none; font-weight: bold; transition: 0.2s; }
         .toolbar button:hover { background: #1f551f; }
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 20px; overflow-x: auto; display: block; }
         th, td { border: 1px solid #dde6d5; padding: 12px 8px; text-align: center; font-size: 0.85rem; }
@@ -40,6 +40,8 @@
         .keterangan { font-size: 0.8rem; font-weight: 500; }
         .table-wrapper { overflow-x: auto; border-radius: 20px; border: 1px solid #e0ecda; }
         footer { text-align: center; font-size: 0.7rem; padding: 16px; color: #4a6741; border-top: 1px solid #deecda; }
+        .btn-tampil { background-color: #2c7a2c; color: white; border: none; padding: 6px 16px; border-radius: 40px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-tampil:hover { background-color: #1e5a1e; transform: scale(0.97); }
         @media (max-width: 700px) { th, td { padding: 6px 4px; font-size: 0.7rem; } .toolbar { flex-direction: column; align-items: stretch; } }
     </style>
 </head>
@@ -281,7 +283,7 @@
     function renderNilaiTable(student) {
         if(!student) {
             document.getElementById("tableHeader").innerHTML = "";
-            document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></tr>";
+            document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></table>";
             return;
         }
         let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
@@ -317,13 +319,16 @@
         for(let s of filtered) {
             html += `<option value="${s.email}">${s.nama} (Kls ${s.kelas})</option>`;
         }
-        html += `</select><button id="refreshNilaiBtn" style="background:#558b2f; padding:6px 14px; border-radius:40px; border:none; color:white;">Tampilkan Nilai</button></div>`;
+        html += `</select><button id="refreshNilaiBtn" class="btn-tampil">Tampilkan Nilai</button></div>`;
         container.innerHTML = html;
-        document.getElementById("refreshNilaiBtn")?.addEventListener("click", () => {
-            let email = document.getElementById("siswaSelect").value;
-            let student = allStudents.find(s => s.email === email);
-            if(student) renderNilaiTable(student);
-        });
+        const refreshBtn = document.getElementById("refreshNilaiBtn");
+        if(refreshBtn) {
+            refreshBtn.addEventListener("click", () => {
+                let email = document.getElementById("siswaSelect").value;
+                let student = allStudents.find(s => s.email === email);
+                if(student) renderNilaiTable(student);
+            });
+        }
         if(filtered.length) renderNilaiTable(filtered[0]);
     }
 
@@ -331,6 +336,11 @@
     function exportToXLS(mapel, kelasFilter) {
         if (!mapel) {
             alert("Pilih mata pelajaran terlebih dahulu.");
+            return;
+        }
+        // Pastikan XLSX tersedia
+        if (typeof XLSX === 'undefined') {
+            alert("Library SheetJS tidak termuat. Periksa koneksi internet.");
             return;
         }
         let targetStudents = (kelasFilter === "all") ? allStudents : allStudents.filter(s => s.kelas == kelasFilter);
@@ -357,7 +367,7 @@
             alert(`Berhasil mengeksport data ${mapel} untuk kelas ${kelasFilter === 'all' ? '7 & 8' : kelasFilter}`);
         } catch(err) {
             console.error("Export error:", err);
-            alert("Terjadi kesalahan saat mengeksport data.");
+            alert("Terjadi kesalahan saat mengeksport data: " + err.message);
         }
     }
 
@@ -375,10 +385,10 @@
                     opt.textContent = mapel;
                     mapelSelect.appendChild(opt);
                 }
-                // Pastikan event listener terpasang dengan benar
+                // Event listener untuk tombol export
                 const exportBtn = document.getElementById("btnExportXLS");
                 const kelasSelect = document.getElementById("exportKelasSelect");
-                // Hapus listener lama jika ada, lalu tambahkan baru
+                // Hapus event lama dengan clone + replace
                 const newExportBtn = exportBtn.cloneNode(true);
                 exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
                 newExportBtn.addEventListener("click", () => {
@@ -387,7 +397,7 @@
                     if(!mapel) { alert("Pilih mata pelajaran."); return; }
                     exportToXLS(mapel, kelas);
                 });
-                // Perbarui referensi
+                // Update referensi (tidak wajib)
                 document.getElementById("btnExportXLS") === newExportBtn;
             }
         } else {
@@ -416,12 +426,10 @@
         document.getElementById("userGreeting").innerHTML = `👋 Selamat datang, ${currentUser.nama} (${currentUser.status === "guru" ? "Guru" : (currentUser.status === "kelas7" ? "Siswa Kelas 7" : "Siswa Kelas 8")})`;
         
         if(currentUser.status === "guru") {
-            // Pastikan data siswa sudah dimuat
             if(allStudents.length === 0) await loadAllData();
             await populateStudentSelectorForGuru();
             initGuruExportToolbar();
         } else {
-            // Siswa: cocokkan berdasarkan email
             let student = allStudents.find(s => s.email === currentUser.emailMatch);
             if(!student) student = allStudents.find(s => s.nama.toLowerCase() === currentUser.nama.toLowerCase());
             if(student) renderNilaiTable(student);
@@ -442,8 +450,8 @@
     }
 
     async function initApp() {
-        await loadAllData();     // load nilai siswa dari CSV
-        await loadUserDB();      // load atau generate user database
+        await loadAllData();
+        await loadUserDB();
         
         const saved = localStorage.getItem("currentUser");
         if(saved) {
