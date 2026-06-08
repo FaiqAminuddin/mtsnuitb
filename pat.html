@@ -196,12 +196,47 @@
             else entry.remidi = nilai;
         }
         return {
-            id: nomorId || email || namaLengkap,
+            id: nomorId,
             nama: namaLengkap,
             kelas: kelas,
             email: email,
             nilaiMap: nilaiMap
         };
+    }
+
+    // ================== URUTAN SISWA CUSTOM ==================
+    // Daftar nomor ID sesuai urutan yang diminta: Kelas 7A, 7B, 8
+    const customOrderIds = [
+        // Kelas 7A (perempuan)
+        "3127769797", "3122643480", "3137803189", "3135912225", "3129419120", "3123412704", "3125801400",
+        "3134059861", "3126303673", "3139255559", "3133179938", "3121731467", "3130222763", "3139712557",
+        "3138132500", "3124587211", "3137380440", "3122574676", "3135601427", "3125985561", "3135163292",
+        "3136243682",
+        // Kelas 7B (laki-laki)
+        "3121447574", "3137298475", "0128312369", "3129488334", "3131150241", "3131590842", "3132787097",
+        "3131455033", "3138847260", "0116163534", "3123874679", "3131799772", "3132593380", "3134103139",
+        // Kelas 8
+        "3130515011", "0095103601", "3120739984", "3125761288", "3125108780", "3124532662", "3115368220",
+        "3119323113", "3127182441", "3114563961", "3115783008", "3129310900", "3119574082", "0111684209",
+        "0121576345", "0113106875", "3122161058", "3111255104", "3119693693", "3114740072", "3114257357",
+        "3120140558", "3117251196", "3114402042", "0122932983", "3139854343"
+    ];
+
+    function sortStudentsByCustomOrder(students) {
+        // Buat peta indeks berdasarkan id
+        const orderMap = new Map();
+        customOrderIds.forEach((id, idx) => {
+            orderMap.set(id, idx);
+        });
+        // Urutkan: siswa yang ada di orderMap lebih dulu, sisanya berdasarkan indeks, lalu berdasarkan nama
+        students.sort((a, b) => {
+            const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
+            const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+            if (idxA !== idxB) return idxA - idxB;
+            // Jika sama-sama tidak ada dalam urutan, urutkan berdasarkan nama
+            return a.nama.localeCompare(b.nama);
+        });
+        return students;
     }
 
     // ================== LOAD DATA ==================
@@ -231,7 +266,9 @@
                 alert(`Data nilai tidak dapat dimuat: ${file.path}. Pastikan file tersedia.`);
             }
         }
-        allStudents = rawStudents;
+        // Terapkan urutan custom
+        allStudents = sortStudentsByCustomOrder(rawStudents);
+        // Kumpulkan mapel unik
         let mapelSet = new Set();
         for(let s of allStudents) {
             for(let mapel of s.nilaiMap.keys()) {
@@ -239,7 +276,7 @@
             }
         }
         masterMapelList = Array.from(mapelSet).sort((a,b) => a.localeCompare(b, 'id'));
-        console.log("Loaded students:", allStudents.length, "mapel:", masterMapelList.length);
+        console.log("Loaded & sorted students:", allStudents.length, "mapel:", masterMapelList.length);
     }
 
     async function loadUserDB() {
@@ -283,7 +320,7 @@
             document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></tr>";
             return;
         }
-        let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
+        let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th>`;
         let tbodyHtml = "";
         let nomor = 1;
         for(let mapel of masterMapelList) {
@@ -295,7 +332,7 @@
             let needRemidi = (utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60));
             let keterangan = needRemidi ? "⚠️ masih perlu remidi" : "✅ tuntas";
             let rowClass = needRemidi ? "nilai-rendah" : "";
-            tbodyHtml += `<tr class="${rowClass}"><td>${nomor++}</td><td style="text-align:left;">${mapel}</td><td>${utama === "-" ? "—" : utama}</td><td>${remidi === "-" ? "—" : remidi}</td><td class="keterangan">${keterangan}</td></tr>`;
+            tbodyHtml += `<tr class="${rowClass}">\n<td>${nomor++}</td>\n<td style="text-align:left;">${mapel}</td>\n<td>${utama === "-" ? "—" : utama}</td>\n<td>${remidi === "-" ? "—" : remidi}</td>\n<td class="keterangan">${keterangan}</td>\n</tr>`;
         }
         document.getElementById("tableHeader").innerHTML = theadHtml;
         document.getElementById("tableBody").innerHTML = tbodyHtml;
@@ -305,6 +342,7 @@
     function populateStudentSelectorForGuru() {
         let container = document.getElementById("studentSelectorArea");
         if(!container) return;
+        // Gunakan allStudents yang sudah terurut
         let filtered = allStudents;
         if(currentUser && currentUser.status !== "guru") {
             container.innerHTML = "";
@@ -330,9 +368,7 @@
     }
 
     // ================== EXPORT XLS (TANPA LIBRARY EKSTERNAL) ==================
-    // Fungsi untuk mengunduh file CSV/HTML sebagai .xls (Excel bisa buka)
     function downloadAsXLS(dataArray, filename) {
-        // dataArray adalah array of array (baris dan kolom)
         let sheetContent = "";
         for(let row of dataArray) {
             let processedRow = row.map(cell => {
@@ -343,7 +379,6 @@
             }).join(",");
             sheetContent += processedRow + "\n";
         }
-        // Tambahkan BOM untuk UTF-8
         const blob = new Blob(["\uFEFF" + sheetContent], { type: "application/vnd.ms-excel" });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
@@ -401,7 +436,6 @@
                 }
                 const exportBtn = document.getElementById("btnExportXLS");
                 const kelasSelect = document.getElementById("exportKelasSelect");
-                // Hapus event lama dengan clone
                 const newExportBtn = exportBtn.cloneNode(true);
                 exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
                 newExportBtn.addEventListener("click", () => {
