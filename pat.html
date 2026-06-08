@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>E-Rapor CBT | MTs Irsyaduth Thullab Tedunan</title>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- SheetJS dari cdnjs (lebih stabil) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; }
         body { background: #f0f7f0; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
@@ -282,10 +283,10 @@
     function renderNilaiTable(student) {
         if(!student) {
             document.getElementById("tableHeader").innerHTML = "";
-            document.getElementById("tableBody").innerHTML = "<td><td colspan='5'>Siswa tidak ditemukan</td></tr>";
+            document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></tr>";
             return;
         }
-        let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
+        let theadHtml = `<table><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
         let tbodyHtml = "";
         let nomor = 1;
         for(let mapel of masterMapelList) {
@@ -331,14 +332,18 @@
         if(filtered.length) renderNilaiTable(filtered[0]);
     }
 
-    // ================== EXPORT XLS ==================
+    // ================== EXPORT XLS (Dengan pengecekan library) ==================
+    function isSheetJSSafe() {
+        return typeof XLSX !== 'undefined' && XLSX && XLSX.utils;
+    }
+
     function exportToXLS(mapel, kelasFilter) {
         if (!mapel) {
             alert("Pilih mata pelajaran terlebih dahulu.");
             return;
         }
-        if (typeof XLSX === 'undefined') {
-            alert("Library SheetJS tidak termuat. Periksa koneksi internet.");
+        if (!isSheetJSSafe()) {
+            alert("Library Excel (SheetJS) belum siap. Silakan refresh halaman dan coba lagi. Jika masih gagal, periksa koneksi internet atau gunakan browser lain.");
             return;
         }
         let targetStudents = (kelasFilter === "all") ? allStudents : allStudents.filter(s => s.kelas == kelasFilter);
@@ -384,7 +389,7 @@
                 }
                 const exportBtn = document.getElementById("btnExportXLS");
                 const kelasSelect = document.getElementById("exportKelasSelect");
-                // Hapus event lama dengan clone
+                // Hapus event listener lama dan pasang baru
                 const newExportBtn = exportBtn.cloneNode(true);
                 exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
                 newExportBtn.addEventListener("click", () => {
@@ -447,10 +452,9 @@
         await loadAllData();
         await loadUserDB();
         
-        // Pasang event listener logout sekali saja
+        // Pasang event listener logout
         const logoutBtn = document.getElementById("logoutBtn");
         if (logoutBtn) {
-            // Hapus listener lama jika ada, lalu pasang baru
             logoutBtn.removeEventListener("click", logout);
             logoutBtn.addEventListener("click", logout);
         }
@@ -476,6 +480,14 @@
         };
         document.getElementById("loginPassword").addEventListener("keypress", (e) => { if(e.key === "Enter") loginBtn.click(); });
     }
+    
+    // Cek ketersediaan SheetJS setelah halaman dimuat
+    window.addEventListener('load', function() {
+        if (!isSheetJSSafe()) {
+            console.warn("SheetJS tidak terdeteksi. Pastikan koneksi internet dan coba refresh.");
+            // Optional: tampilkan pesan di konsol, tapi tidak mengganggu fungsi lain
+        }
+    });
     
     initApp();
 </script>
