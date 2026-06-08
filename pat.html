@@ -54,7 +54,7 @@
             <input type="password" id="loginPassword" placeholder="Kata Sandi">
             <button id="btnLogin">🔑 MASUK</button>
             <div id="loginError" class="error-msg" style="display: none;"></div>
-            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">Nderek khidmah, nyadong berkah</div>
+            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">Demo: guru (guru/guru123) atau siswa pakai username + sandi: siswa123</div>
         </div>
     </div>
 
@@ -176,7 +176,7 @@
         let namaAkhir = rawObj["Nama akhir"] || "";
         let namaLengkap = (namaDepan + " " + namaAkhir).trim();
         let email = rawObj["Alamat surel"] || "";
-        let nomorId = rawObj["Nomor ID"] || "";
+        let emailLocal = email ? email.split('@')[0] : "";  // ambil prefix email sebagai ID unik
         let kelas = defaultKelas;
 
         let nilaiMap = new Map();
@@ -197,7 +197,7 @@
             else entry.remidi = nilai;
         }
         return {
-            id: nomorId,
+            uid: emailLocal,          // identifier unik dari email
             nama: namaLengkap,
             kelas: kelas,
             email: email,
@@ -206,8 +206,8 @@
     }
 
     // ================== URUTAN SISWA CUSTOM & SUBKELAS ==================
-    // Daftar nomor ID sesuai urutan: 7A, 7B, 8
-    const customOrderIds = [
+    // Daftar prefix email (nomor ID) sesuai urutan: 7A, 7B, 8
+    const customOrderUids = [
         // Kelas 7A (perempuan) - 22 siswa
         "3127769797", "3122643480", "3137803189", "3135912225", "3129419120", "3123412704", "3125801400",
         "3134059861", "3126303673", "3139255559", "3133179938", "3121731467", "3130222763", "3139712557",
@@ -223,9 +223,8 @@
         "3120140558", "3117251196", "3114402042", "0122932983", "3139854343"
     ];
 
-    // Mapping ID ke subkelas (7A, 7B, 8) berdasarkan posisi dalam customOrderIds
-    function getSubkelasById(id) {
-        const index = customOrderIds.indexOf(id);
+    function getSubkelasByUid(uid) {
+        const index = customOrderUids.indexOf(uid);
         if (index === -1) return null;
         if (index < 22) return "7A";
         if (index < 22 + 14) return "7B";
@@ -234,13 +233,13 @@
 
     function sortStudentsByCustomOrder(students) {
         const orderMap = new Map();
-        customOrderIds.forEach((id, idx) => orderMap.set(id, idx));
+        customOrderUids.forEach((uid, idx) => orderMap.set(uid, idx));
         students.forEach(s => {
-            s.subkelas = getSubkelasById(s.id) || (s.kelas == 7 ? "7" : "8");
+            s.subkelas = getSubkelasByUid(s.uid) || (s.kelas == 7 ? "7" : "8");
         });
         students.sort((a, b) => {
-            const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
-            const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+            const idxA = orderMap.has(a.uid) ? orderMap.get(a.uid) : Infinity;
+            const idxB = orderMap.has(b.uid) ? orderMap.get(b.uid) : Infinity;
             if (idxA !== idxB) return idxA - idxB;
             return a.nama.localeCompare(b.nama);
         });
@@ -281,6 +280,7 @@
         }
         masterMapelList = Array.from(mapelSet).sort((a,b) => a.localeCompare(b, 'id'));
         console.log("Loaded & sorted students:", allStudents.length, "mapel:", masterMapelList.length);
+        console.log("Contoh subkelas:", allStudents.slice(0,3).map(s=>`${s.nama}: ${s.subkelas}`));
     }
 
     async function loadUserDB() {
@@ -324,7 +324,7 @@
             document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></tr>";
             return;
         }
-        let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th>`;
+        let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
         let tbodyHtml = "";
         let nomor = 1;
         for(let mapel of masterMapelList) {
@@ -336,7 +336,7 @@
             let needRemidi = (utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60));
             let keterangan = needRemidi ? "⚠️ masih perlu remidi" : "✅ tuntas";
             let rowClass = needRemidi ? "nilai-rendah" : "";
-            tbodyHtml += `<tr class="${rowClass}">\n<td>${nomor++}</td>\n<td style="text-align:left;">${mapel}</td>\n<td>${utama === "-" ? "—" : utama}</td>\n<td>${remidi === "-" ? "—" : remidi}</td>\n<td class="keterangan">${keterangan}</td>\n</tr>`;
+            tbodyHtml += `<tr class="${rowClass}"><td>${nomor++}</td><td style="text-align:left;">${mapel}</td><td>${utama === "-" ? "—" : utama}</td><td>${remidi === "-" ? "—" : remidi}</td><td class="keterangan">${keterangan}</td></tr>`;
         }
         document.getElementById("tableHeader").innerHTML = theadHtml;
         document.getElementById("tableBody").innerHTML = tbodyHtml;
@@ -404,7 +404,10 @@
         else if (kelasFilter === "8") targetStudents = allStudents.filter(s => s.subkelas === "8");
         else targetStudents = allStudents;
 
-        if(targetStudents.length === 0) { alert("Tidak ada siswa pada kelompok tersebut."); return; }
+        if(targetStudents.length === 0) { 
+            alert(`Tidak ada siswa pada kelompok ${kelasFilter}. Pastikan data sudah dimuat dengan benar.`);
+            return; 
+        }
         let exportData = [["Nama Siswa", "Kelas", `Nilai Utama (${mapel})`, `Nilai Remidi (${mapel})`, "Keterangan"]];
         for(let s of targetStudents) {
             let nilaiMapel = s.nilaiMap.get(mapel) || { utama: null, remidi: null };
@@ -485,7 +488,7 @@
             let student = allStudents.find(s => s.email === currentUser.emailMatch);
             if(!student) student = allStudents.find(s => s.nama.toLowerCase() === currentUser.nama.toLowerCase());
             if(student) renderNilaiTable(student);
-            else document.getElementById("tableBody").innerHTML = "<td><td colspan='5'>Data nilai tidak ditemukan untuk akun ini.</td></tr>";
+            else document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Data nilai tidak ditemukan untuk akun ini.</td></tr>";
             document.getElementById("studentSelectorArea").innerHTML = "";
             document.getElementById("guruToolbar").style.display = "none";
         }
