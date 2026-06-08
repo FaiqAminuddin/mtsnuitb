@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>E-Rapor CBT | MTs Irsyaduth Thullab Tedunan</title>
-    <!-- SheetJS untuk export XLS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; }
@@ -283,7 +282,7 @@
     function renderNilaiTable(student) {
         if(!student) {
             document.getElementById("tableHeader").innerHTML = "";
-            document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Siswa tidak ditemukan</td></table>";
+            document.getElementById("tableBody").innerHTML = "<td><td colspan='5'>Siswa tidak ditemukan</td></tr>";
             return;
         }
         let theadHtml = `<tr><th>No</th><th>Mata Pelajaran</th><th>Nilai Utama</th><th>Nilai Remidi</th><th>Keterangan</th></tr>`;
@@ -332,13 +331,12 @@
         if(filtered.length) renderNilaiTable(filtered[0]);
     }
 
-    // ================== EXPORT XLS (DIPERBAIKI) ==================
+    // ================== EXPORT XLS ==================
     function exportToXLS(mapel, kelasFilter) {
         if (!mapel) {
             alert("Pilih mata pelajaran terlebih dahulu.");
             return;
         }
-        // Pastikan XLSX tersedia
         if (typeof XLSX === 'undefined') {
             alert("Library SheetJS tidak termuat. Periksa koneksi internet.");
             return;
@@ -348,7 +346,6 @@
             alert("Tidak ada siswa pada kelas tersebut.");
             return;
         }
-        // Siapkan data untuk sheet
         let exportData = [["Nama Siswa", "Kelas", `Nilai Utama (${mapel})`, `Nilai Remidi (${mapel})`, "Keterangan"]];
         for(let s of targetStudents) {
             let nilaiMapel = s.nilaiMap.get(mapel) || { utama: null, remidi: null };
@@ -385,10 +382,9 @@
                     opt.textContent = mapel;
                     mapelSelect.appendChild(opt);
                 }
-                // Event listener untuk tombol export
                 const exportBtn = document.getElementById("btnExportXLS");
                 const kelasSelect = document.getElementById("exportKelasSelect");
-                // Hapus event lama dengan clone + replace
+                // Hapus event lama dengan clone
                 const newExportBtn = exportBtn.cloneNode(true);
                 exportBtn.parentNode.replaceChild(newExportBtn, exportBtn);
                 newExportBtn.addEventListener("click", () => {
@@ -397,8 +393,6 @@
                     if(!mapel) { alert("Pilih mata pelajaran."); return; }
                     exportToXLS(mapel, kelas);
                 });
-                // Update referensi (tidak wajib)
-                document.getElementById("btnExportXLS") === newExportBtn;
             }
         } else {
             toolbarDiv.style.display = "none";
@@ -453,6 +447,14 @@
         await loadAllData();
         await loadUserDB();
         
+        // Pasang event listener logout sekali saja
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+            // Hapus listener lama jika ada, lalu pasang baru
+            logoutBtn.removeEventListener("click", logout);
+            logoutBtn.addEventListener("click", logout);
+        }
+        
         const saved = localStorage.getItem("currentUser");
         if(saved) {
             try {
@@ -466,13 +468,13 @@
         document.getElementById("loginSection").style.display = "block";
         document.getElementById("dashboardSection").style.display = "none";
         
-        document.getElementById("btnLogin").onclick = async () => {
+        const loginBtn = document.getElementById("btnLogin");
+        loginBtn.onclick = async () => {
             const user = document.getElementById("loginUsername").value.trim();
             const pass = document.getElementById("loginPassword").value.trim();
             if(await handleLogin(user, pass)) await showDashboard();
         };
-        document.getElementById("loginPassword").addEventListener("keypress", (e) => { if(e.key === "Enter") document.getElementById("btnLogin").click(); });
-        document.getElementById("logoutBtn").addEventListener("click", logout);
+        document.getElementById("loginPassword").addEventListener("keypress", (e) => { if(e.key === "Enter") loginBtn.click(); });
     }
     
     initApp();
