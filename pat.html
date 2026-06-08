@@ -54,7 +54,7 @@
             <input type="password" id="loginPassword" placeholder="Kata Sandi">
             <button id="btnLogin">🔑 MASUK</button>
             <div id="loginError" class="error-msg" style="display: none;"></div>
-            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">nderek khidmah, nyadong berkah</div>
+            <div style="margin-top: 20px; font-size: 0.7rem; color:#746b5e;">Nderek khidmah, nyadong berkah</div>
         </div>
     </div>
 
@@ -77,7 +77,8 @@
                     <label>🏫 Kelas</label>
                     <select id="exportKelasSelect">
                         <option value="all">Semua Kelas (7 & 8)</option>
-                        <option value="7">Kelas 7</option>
+                        <option value="7A">Kelas 7A</option>
+                        <option value="7B">Kelas 7B</option>
                         <option value="8">Kelas 8</option>
                     </select>
                 </div>
@@ -204,36 +205,43 @@
         };
     }
 
-    // ================== URUTAN SISWA CUSTOM ==================
-    // Daftar nomor ID sesuai urutan yang diminta: Kelas 7A, 7B, 8
+    // ================== URUTAN SISWA CUSTOM & SUBKELAS ==================
+    // Daftar nomor ID sesuai urutan: 7A, 7B, 8
     const customOrderIds = [
-        // Kelas 7A (perempuan)
+        // Kelas 7A (perempuan) - 22 siswa
         "3127769797", "3122643480", "3137803189", "3135912225", "3129419120", "3123412704", "3125801400",
         "3134059861", "3126303673", "3139255559", "3133179938", "3121731467", "3130222763", "3139712557",
         "3138132500", "3124587211", "3137380440", "3122574676", "3135601427", "3125985561", "3135163292",
         "3136243682",
-        // Kelas 7B (laki-laki)
+        // Kelas 7B (laki-laki) - 14 siswa
         "3121447574", "3137298475", "0128312369", "3129488334", "3131150241", "3131590842", "3132787097",
         "3131455033", "3138847260", "0116163534", "3123874679", "3131799772", "3132593380", "3134103139",
-        // Kelas 8
+        // Kelas 8 - 26 siswa
         "3130515011", "0095103601", "3120739984", "3125761288", "3125108780", "3124532662", "3115368220",
         "3119323113", "3127182441", "3114563961", "3115783008", "3129310900", "3119574082", "0111684209",
         "0121576345", "0113106875", "3122161058", "3111255104", "3119693693", "3114740072", "3114257357",
         "3120140558", "3117251196", "3114402042", "0122932983", "3139854343"
     ];
 
+    // Mapping ID ke subkelas (7A, 7B, 8) berdasarkan posisi dalam customOrderIds
+    function getSubkelasById(id) {
+        const index = customOrderIds.indexOf(id);
+        if (index === -1) return null;
+        if (index < 22) return "7A";
+        if (index < 22 + 14) return "7B";
+        return "8";
+    }
+
     function sortStudentsByCustomOrder(students) {
-        // Buat peta indeks berdasarkan id
         const orderMap = new Map();
-        customOrderIds.forEach((id, idx) => {
-            orderMap.set(id, idx);
+        customOrderIds.forEach((id, idx) => orderMap.set(id, idx));
+        students.forEach(s => {
+            s.subkelas = getSubkelasById(s.id) || (s.kelas == 7 ? "7" : "8");
         });
-        // Urutkan: siswa yang ada di orderMap lebih dulu, sisanya berdasarkan indeks, lalu berdasarkan nama
         students.sort((a, b) => {
             const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
             const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
             if (idxA !== idxB) return idxA - idxB;
-            // Jika sama-sama tidak ada dalam urutan, urutkan berdasarkan nama
             return a.nama.localeCompare(b.nama);
         });
         return students;
@@ -266,14 +274,10 @@
                 alert(`Data nilai tidak dapat dimuat: ${file.path}. Pastikan file tersedia.`);
             }
         }
-        // Terapkan urutan custom
         allStudents = sortStudentsByCustomOrder(rawStudents);
-        // Kumpulkan mapel unik
         let mapelSet = new Set();
         for(let s of allStudents) {
-            for(let mapel of s.nilaiMap.keys()) {
-                mapelSet.add(mapel);
-            }
+            for(let mapel of s.nilaiMap.keys()) mapelSet.add(mapel);
         }
         masterMapelList = Array.from(mapelSet).sort((a,b) => a.localeCompare(b, 'id'));
         console.log("Loaded & sorted students:", allStudents.length, "mapel:", masterMapelList.length);
@@ -336,23 +340,24 @@
         }
         document.getElementById("tableHeader").innerHTML = theadHtml;
         document.getElementById("tableBody").innerHTML = tbodyHtml;
-        document.getElementById("subtitleNilai").innerHTML = `📖 Daftar Nilai - ${student.nama} (Kelas ${student.kelas})`;
+        let subkelasLabel = student.subkelas ? ` (Kelas ${student.subkelas})` : ` (Kelas ${student.kelas})`;
+        document.getElementById("subtitleNilai").innerHTML = `📖 Daftar Nilai - ${student.nama}${subkelasLabel}`;
     }
 
     function populateStudentSelectorForGuru() {
         let container = document.getElementById("studentSelectorArea");
         if(!container) return;
-        // Gunakan allStudents yang sudah terurut
-        let filtered = allStudents;
         if(currentUser && currentUser.status !== "guru") {
             container.innerHTML = "";
             return;
         }
+        let filtered = allStudents;
         let html = `<div style="display: flex; gap: 12px; align-items: center; flex-wrap:wrap;">
                         <label><strong>👥 Pilih Siswa : </strong></label>
                         <select id="siswaSelect" style="padding:6px 12px; border-radius:40px;">`;
         for(let s of filtered) {
-            html += `<option value="${s.email}">${s.nama} (Kls ${s.kelas})</option>`;
+            let label = s.subkelas ? `${s.nama} (Kls ${s.subkelas})` : `${s.nama} (Kls ${s.kelas})`;
+            html += `<option value="${s.email}">${label}</option>`;
         }
         html += `</select><button id="refreshNilaiBtn" class="btn-tampil">Tampilkan Nilai</button></div>`;
         container.innerHTML = html;
@@ -367,7 +372,7 @@
         if(filtered.length) renderNilaiTable(filtered[0]);
     }
 
-    // ================== EXPORT XLS (TANPA LIBRARY EKSTERNAL) ==================
+    // ================== EXPORT XLS (TANPA LIBRARY) ==================
     function downloadAsXLS(dataArray, filename) {
         let sheetContent = "";
         for(let row of dataArray) {
@@ -391,15 +396,15 @@
     }
 
     function exportToXLS(mapel, kelasFilter) {
-        if (!mapel) {
-            alert("Pilih mata pelajaran terlebih dahulu.");
-            return;
-        }
-        let targetStudents = (kelasFilter === "all") ? allStudents : allStudents.filter(s => s.kelas == kelasFilter);
-        if(targetStudents.length === 0) {
-            alert("Tidak ada siswa pada kelas tersebut.");
-            return;
-        }
+        if (!mapel) { alert("Pilih mata pelajaran terlebih dahulu."); return; }
+        let targetStudents;
+        if (kelasFilter === "all") targetStudents = allStudents;
+        else if (kelasFilter === "7A") targetStudents = allStudents.filter(s => s.subkelas === "7A");
+        else if (kelasFilter === "7B") targetStudents = allStudents.filter(s => s.subkelas === "7B");
+        else if (kelasFilter === "8") targetStudents = allStudents.filter(s => s.subkelas === "8");
+        else targetStudents = allStudents;
+
+        if(targetStudents.length === 0) { alert("Tidak ada siswa pada kelompok tersebut."); return; }
         let exportData = [["Nama Siswa", "Kelas", `Nilai Utama (${mapel})`, `Nilai Remidi (${mapel})`, "Keterangan"]];
         for(let s of targetStudents) {
             let nilaiMapel = s.nilaiMap.get(mapel) || { utama: null, remidi: null };
@@ -408,12 +413,13 @@
             let utamaAngka = (nilaiMapel.utama !== null && !isNaN(nilaiMapel.utama)) ? nilaiMapel.utama : -1;
             let remidiAngka = (nilaiMapel.remidi !== null && !isNaN(nilaiMapel.remidi)) ? nilaiMapel.remidi : -1;
             let keterangan = (utamaAngka < 60 && (remidiAngka === -1 || remidiAngka < 60)) ? "Masih perlu remidi" : "Tuntas";
-            exportData.push([s.nama, `Kelas ${s.kelas}`, utama, remidi, keterangan]);
+            let kelasLabel = s.subkelas ? `Kelas ${s.subkelas}` : `Kelas ${s.kelas}`;
+            exportData.push([s.nama, kelasLabel, utama, remidi, keterangan]);
         }
         try {
-            const filename = `Nilai_${mapel}_kelas${kelasFilter}_PAT2026.xls`;
+            const filename = `Nilai_${mapel}_${kelasFilter}_PAT2026.xls`;
             downloadAsXLS(exportData, filename);
-            alert(`Berhasil mengeksport data ${mapel} untuk kelas ${kelasFilter === 'all' ? '7 & 8' : kelasFilter}`);
+            alert(`Berhasil mengeksport data ${mapel} untuk ${kelasFilter === 'all' ? 'Semua Kelas' : 'Kelas '+kelasFilter}`);
         } catch(err) {
             console.error("Export error:", err);
             alert("Terjadi kesalahan saat mengeksport data: " + err.message);
@@ -468,7 +474,8 @@
         if(!currentUser) return;
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("dashboardSection").style.display = "block";
-        document.getElementById("userGreeting").innerHTML = `👋 Selamat datang, ${currentUser.nama} (${currentUser.status === "guru" ? "Guru" : (currentUser.status === "kelas7" ? "Siswa Kelas 7" : "Siswa Kelas 8")})`;
+        let roleText = currentUser.status === "guru" ? "Guru" : (currentUser.status === "kelas7" ? "Siswa Kelas 7" : "Siswa Kelas 8");
+        document.getElementById("userGreeting").innerHTML = `👋 Selamat datang, ${currentUser.nama} (${roleText})`;
         
         if(currentUser.status === "guru") {
             if(allStudents.length === 0) await loadAllData();
@@ -478,7 +485,7 @@
             let student = allStudents.find(s => s.email === currentUser.emailMatch);
             if(!student) student = allStudents.find(s => s.nama.toLowerCase() === currentUser.nama.toLowerCase());
             if(student) renderNilaiTable(student);
-            else document.getElementById("tableBody").innerHTML = "<tr><td colspan='5'>Data nilai tidak ditemukan untuk akun ini.</td></tr>";
+            else document.getElementById("tableBody").innerHTML = "<td><td colspan='5'>Data nilai tidak ditemukan untuk akun ini.</td></tr>";
             document.getElementById("studentSelectorArea").innerHTML = "";
             document.getElementById("guruToolbar").style.display = "none";
         }
@@ -497,13 +504,11 @@
     async function initApp() {
         await loadAllData();
         await loadUserDB();
-        
         const logoutBtn = document.getElementById("logoutBtn");
         if (logoutBtn) {
             logoutBtn.removeEventListener("click", logout);
             logoutBtn.addEventListener("click", logout);
         }
-        
         const saved = localStorage.getItem("currentUser");
         if(saved) {
             try {
@@ -516,7 +521,6 @@
         }
         document.getElementById("loginSection").style.display = "block";
         document.getElementById("dashboardSection").style.display = "none";
-        
         const loginBtn = document.getElementById("btnLogin");
         loginBtn.onclick = async () => {
             const user = document.getElementById("loginUsername").value.trim();
